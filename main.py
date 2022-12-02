@@ -2,6 +2,9 @@ from config import lists_id, api_token
 import requests as r
 import pandas as pd
 from datetime import datetime
+#import gspread
+#from gspread_pandas import Spread
+#from oauth2client.service_account import ServiceAccountCredentials
 
 
 def extract(list_id):
@@ -94,29 +97,41 @@ def transform(data):
 
             if custom_field['type'] == 'number':
 
-                datamodel[custom_field['name']].append(custom_field['value'])
+                try:
+                    datamodel[custom_field['name']].append(custom_field['value'])
+                except:
+                    datamodel[custom_field['name']].append(None)
 
             elif custom_field['type'] == 'drop_down':
 
                 # extract the value for comparation
-                value = custom_field['value']
+                try:
+                    value = custom_field['value']
+                except:
+                    value = None
 
                 for option in custom_field['type_config']['options']:
 
                     if option['orderindex'] == value:
-
-                        datamodel[custom_field['name']].append(option['name'])
+                        
+                            datamodel[custom_field['name']].append(option['name'])
+                if value == None:
+                        datamodel[custom_field['name']].append(None)
+                    
 
             elif custom_field['type'] == 'labels':
 
                 temp_list = []
 
                 # extract the values for comparation
-                values = custom_field['value']
+                try:
+                    values = custom_field['value']
+                except:
+                    values = None
 
                 for option in custom_field['type_config']['options']:
 
-                    if option['id'] in values:
+                    if values is not None and option['id'] in values:
 
                         temp_list.append(option['label'])
 
@@ -125,12 +140,19 @@ def transform(data):
         datamodel['url'].append(task['url'])
 
     df = pd.DataFrame(data=datamodel)
-    
-    return df.head(5)
+
+    return df
+
+
+def load(df):
+
+    return df.to_csv('data.csv')
+
 
 
 if __name__ == '__main__':
 
     for list in lists_id:
         json_data = extract(list)
-        df = print(transform(json_data))
+        df = transform(json_data)
+        load(df)
